@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: "sla-aware-system-production.up.railway.app",
   headers: { "Content-Type": "application/json" }
 });
 
