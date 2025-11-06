@@ -1,3 +1,6 @@
+# ========================================
+# FRONTEND (React / Node)
+# ========================================
 # Logs
 logs
 *.log
@@ -7,18 +10,49 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
 *.local
 
-# Editor directories and files
-.vscode/*
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor / System
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ========================================
+# BACKEND (Python / Flask)
+# ========================================
+# Virtual environments
+venv/
+backend/venv/
+env/
+backend/env/
+
+# Python cache / compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SQLite database (optional - remove if you want to keep in repo)
+*.db
+
+# Other temporary files
+*.bak
+*.tmp
