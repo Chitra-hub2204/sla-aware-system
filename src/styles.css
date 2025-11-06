@@ -1,0 +1,60 @@
+body {
+  font-family: sans-serif;
+  background: #f9f9f9;
+  margin: 0;
+  padding: 20px;
+}
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.panel {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.panel.full {
+  grid-column: 1 / -1;
+}
+.form input, .form select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+}
+button.small {
+  background: gray;
+  padding: 5px 8px;
+}
+.orders {
+  list-style: none;
+  padding: 0;
+}
+.order-row {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
+.badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+}
+.badge.green { background: green; }
+.badge.red { background: red; }
+.badge.yellow { background: orange; }
+.badge.gray { background: gray; }
