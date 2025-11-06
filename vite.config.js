@@ -1,22 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Replace the URL below with your Railway backend domain if different,
-// or set BACKEND_URL in your environment to override.
-const backend = process.env.BACKEND_URL || 'https://sla-aware-system-production.up.railway.app'
+// ✅ Clean production config for Vercel
+// No proxy needed — frontend directly calls Railway backend using full URL in api.js
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: 'dist',       // Vercel uses this as output
+    sourcemap: false
+  },
   server: {
-    proxy: {
-      // any request your frontend makes to /api/* will be proxied to the backend
-      '/api': {
-        target: backend,
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api')
-      }
-    }
+    port: 5173,           // local dev port
+    open: true
   },
   preview: {
     port: 5173
