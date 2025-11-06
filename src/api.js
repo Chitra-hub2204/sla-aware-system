@@ -1,21 +1,24 @@
 import axios from "axios";
 
-const API = axios.create({
-  baseURL: "sla-aware-system-production.up.railway.app",
-  headers: { "Content-Type": "application/json" }
-});
+// ✅ Your live backend URL
+const API_BASE_URL = "https://sla-aware-system-production.up.railway.app";
 
-export async function createOrder(payload) {
-  const res = await API.post("/orders", payload);
-  return res.data;
-}
+export const createOrder = async (data) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/orders`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating order:", error);
+    throw error;
+  }
+};
 
-export async function listOrders() {
-  const res = await API.get("/orders");
-  return res.data;
-}
-
-export async function getOrder(id) {
-  const res = await API.get(`/orders/${id}`);
-  return res.data;
-}
+export const getOrders = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/orders`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    throw error;
+  }
+};
