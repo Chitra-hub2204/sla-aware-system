@@ -68,3 +68,6 @@ export const checkHealth = async () => {
     throw error;
   }
 };
+
+// ✅ Compatibility alias (for old code using listOrders)
+export { getOrders as listOrders };
