@@ -1,13 +1,12 @@
 import axios from "axios";
 
-// ✅ Automatically picks the Railway backend when deployed on Vercel
-// or uses localhost when testing locally
+// ✅ Automatically uses environment variable from Vercel or defaults to Railway
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://sla-aware-system-production.up.railway.app";
 
 console.log("🌍 Backend in use:", API_BASE_URL);
 
-// Create a new SLA order
+// ✅ Create a new SLA order
 export const createOrder = async (data) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/orders`, data, {
@@ -22,7 +21,7 @@ export const createOrder = async (data) => {
   }
 };
 
-// Fetch all SLA orders
+// ✅ Fetch all SLA orders
 export const getOrders = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/orders`);
@@ -33,7 +32,7 @@ export const getOrders = async () => {
   }
 };
 
-// ✅ Fetch details of a single order by ID
+// ✅ Fetch a specific SLA order by ID (used in OrderDetail.jsx)
 export const getOrder = async (orderId) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`);
@@ -44,7 +43,7 @@ export const getOrder = async (orderId) => {
   }
 };
 
-// ✅ Simulate metrics for a given order
+// ✅ Simulate SLA metrics for an order
 export const simulateMetrics = async (orderId, data = {}) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/simulate/${orderId}`, data, {
@@ -55,6 +54,17 @@ export const simulateMetrics = async (orderId, data = {}) => {
     return response.data;
   } catch (error) {
     console.error("❌ Error simulating metrics:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// ✅ Health check (optional utility)
+export const checkHealth = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/health`);
+    return response.data;
+  } catch (error) {
+    console.error("⚠️ Backend health check failed:", error.message);
     throw error;
   }
 };
