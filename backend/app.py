@@ -6,6 +6,7 @@ from monitor import scheduled_generate, generate_metric_for_order
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 import os
+from waitress import serve
 
 
 def create_app():
@@ -14,9 +15,17 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
 
-    # ✅ Allow all origins (so Vercel frontend can access)
-    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+    # ✅ Allow your deployed Vercel frontend and localhost for dev
+    CORS(app, resources={
+        r"/*": {
+            "origins": [
+                "https://sla-aware-system-p5ow.vercel.app",  # Vercel domain
+                "http://localhost:5173"                      # Local dev
+            ]
+        }
+    }, supports_credentials=True)
 
+    # Initialize database
     with app.app_context():
         db.create_all()
 
@@ -24,51 +33,59 @@ def create_app():
 
     @app.route("/orders", methods=["POST"])
     def create_order():
+        """Create a new service order"""
         data = request.get_json()
         required = ["user_name", "service_type", "sla_uptime_pct", "sla_latency_ms"]
+
         if not data or not all(k in data for k in required):
-            return jsonify({"error": "invalid payload"}), 400
+            return jsonify({"error": "Invalid payload"}), 400
 
-        o = ServiceOrder(
-            user_name=data["user_name"],
-            service_type=data["service_type"],
-            sla_uptime_pct=float(data["sla_uptime_pct"]),
-            sla_latency_ms=float(data["sla_latency_ms"]),
-            status="PENDING"
-        )
-        db.session.add(o)
-        db.session.commit()
+        try:
+            o = ServiceOrder(
+                user_name=data["user_name"],
+                service_type=data["service_type"],
+                sla_uptime_pct=float(data["sla_uptime_pct"]),
+                sla_latency_ms=float(data["sla_latency_ms"]),
+                status="PENDING"
+            )
+            db.session.add(o)
+            db.session.commit()
 
-        return jsonify({
-            "id": o.id,
-            "user_name": o.user_name,
-            "service_type": o.service_type,
-            "sla_uptime_pct": o.sla_uptime_pct,
-            "sla_latency_ms": o.sla_latency_ms,
-            "status": o.status
-        }), 201
-
-    @app.route("/orders", methods=["GET"])
-    def list_orders():
-        orders = ServiceOrder.query.order_by(ServiceOrder.created_at.desc()).all()
-        out = []
-        for o in orders:
-            out.append({
+            return jsonify({
                 "id": o.id,
                 "user_name": o.user_name,
                 "service_type": o.service_type,
                 "sla_uptime_pct": o.sla_uptime_pct,
                 "sla_latency_ms": o.sla_latency_ms,
-                "created_at": o.created_at.isoformat(),
                 "status": o.status
-            })
-        return jsonify(out)
+            }), 201
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/orders", methods=["GET"])
+    def list_orders():
+        """List all service orders"""
+        orders = ServiceOrder.query.order_by(ServiceOrder.created_at.desc()).all()
+        result = [{
+            "id": o.id,
+            "user_name": o.user_name,
+            "service_type": o.service_type,
+            "sla_uptime_pct": o.sla_uptime_pct,
+            "sla_latency_ms": o.sla_latency_ms,
+            "created_at": o.created_at.isoformat(),
+            "status": o.status
+        } for o in orders]
+        return jsonify(result)
 
     @app.route("/orders/<int:order_id>", methods=["GET"])
     def get_order(order_id):
+        """Get order details with metrics and alerts"""
         o = ServiceOrder.query.get_or_404(order_id)
         metrics = MetricRecord.query.filter_by(order_id=o.id).order_by(MetricRecord.timestamp.asc()).all()
         alerts = Alert.query.filter_by(order_id=o.id).order_by(Alert.timestamp.desc()).all()
+
         return jsonify({
             "id": o.id,
             "user_name": o.user_name,
@@ -89,14 +106,17 @@ def create_app():
 
     @app.route("/simulate/<int:order_id>", methods=["POST"])
     def simulate(order_id):
+        """Simulate metrics for a specific order"""
         o = ServiceOrder.query.get_or_404(order_id)
         body = request.get_json(silent=True) or {}
         deterministic = None
+
         if "uptime_pct" in body or "latency_ms" in body:
             deterministic = {
                 "uptime_pct": body.get("uptime_pct", None),
                 "latency_ms": body.get("latency_ms", None)
             }
+
         m = generate_metric_for_order(o, deterministic=deterministic)
         return jsonify({
             "timestamp": m.timestamp.isoformat(),
@@ -104,24 +124,23 @@ def create_app():
             "latency_ms": m.latency_ms
         })
 
-    # ---------------------- HEALTH ---------------------- #
-
     @app.route("/health")
     def health():
+        """Simple health check"""
         return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
 
-    # ---------------------- SCHEDULER ---------------------- #
-
+    # ---------------------- BACKGROUND JOB ---------------------- #
     scheduler = BackgroundScheduler()
-    scheduler.add_job(lambda: scheduled_generate(app), "interval", seconds=SCHEDULER_INTERVAL_SECONDS,
+    scheduler.add_job(lambda: scheduled_generate(app), "interval",
+                      seconds=SCHEDULER_INTERVAL_SECONDS,
                       id="metrics_gen", replace_existing=True)
     scheduler.start()
 
     return app
 
 
+# ---------------------- APP ENTRY POINT ---------------------- #
 if __name__ == "__main__":
-    from waitress import serve
     app = create_app()
     port = int(os.environ.get("PORT", 8080))
     serve(app, host="0.0.0.0", port=port)
