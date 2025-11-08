@@ -5,22 +5,25 @@ from config import DATABASE_URL, SCHEDULER_INTERVAL_SECONDS
 from monitor import scheduled_generate, generate_metric_for_order
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
-import os
 from waitress import serve
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
+import os
 
 
 def create_app():
     app = Flask(__name__)
+
+    # ------------------ Database Config ------------------
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
-    # Load environment variables
+
+    # ------------------ Environment Setup ------------------
     load_dotenv()
 
-# Configure Flask-Mail
-    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
+    # ------------------ Mail Config ------------------
+    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 587))
     app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True") == "True"
     app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
@@ -29,24 +32,21 @@ def create_app():
 
     mail = Mail(app)
 
-
-    # ✅ Updated CORS configuration
-    # Allows both Netlify + local + old Vercel (optional)
+    # ------------------ CORS Setup ------------------
     CORS(app, resources={
         r"/*": {
             "origins": [
-                "https://legendary-frangipane-409a9d.netlify.app",  # ✅ New Netlify domain
-                "https://sla-aware-system-p5ow.vercel.app",         # Old Vercel domain
-                "http://localhost:5173"                             # Local dev
+                "https://legendary-frangipane-409a9d.netlify.app",  # ✅ your Netlify frontend
+                "http://localhost:5173"                             # local dev
             ]
         }
-    }, supports_credentials=True)
+    })
 
-    # Initialize database
+    # ------------------ Database Init ------------------
     with app.app_context():
         db.create_all()
 
-    # ---------------------- ROUTES ---------------------- #
+    # ------------------ Routes ------------------
 
     @app.route("/orders", methods=["POST"])
     def create_order():
@@ -67,6 +67,18 @@ def create_app():
             )
             db.session.add(o)
             db.session.commit()
+
+            # Send email notification on order creation (optional)
+            try:
+                msg = Message(
+                    subject=f"New SLA Order Created (ID: {o.id})",
+                    recipients=[app.config["MAIL_USERNAME"]],
+                    body=f"A new SLA order has been created by {o.user_name} for {o.service_type}."
+                )
+                mail.send(msg)
+                print(f"✅ Email alert sent successfully for Order {o.id}")
+            except Exception as e:
+                print(f"⚠️ Email sending failed: {e}")
 
             return jsonify({
                 "id": o.id,
@@ -135,6 +147,21 @@ def create_app():
             }
 
         m = generate_metric_for_order(o, deterministic=deterministic)
+
+        # Example: Send alert mail if SLA breach
+        if m.uptime_pct < o.sla_uptime_pct or m.latency_ms > o.sla_latency_ms:
+            try:
+                msg = Message(
+                    subject=f"SLA Alert for Order {o.id}",
+                    recipients=[app.config["MAIL_USERNAME"]],
+                    body=f"⚠️ SLA breach detected for {o.service_type}.\n"
+                         f"Uptime: {m.uptime_pct}% | Latency: {m.latency_ms}ms"
+                )
+                mail.send(msg)
+                print(f"✅ Email alert sent successfully for Order {o.id} (SLA_BREACH)")
+            except Exception as e:
+                print(f"⚠️ Failed to send SLA alert email: {e}")
+
         return jsonify({
             "timestamp": m.timestamp.isoformat(),
             "uptime_pct": m.uptime_pct,
@@ -146,7 +173,7 @@ def create_app():
         """Simple health check"""
         return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
 
-    # ---------------------- BACKGROUND JOB ---------------------- #
+    # ---------------------- Background Job ----------------------
     scheduler = BackgroundScheduler()
     scheduler.add_job(lambda: scheduled_generate(app), "interval",
                       seconds=SCHEDULER_INTERVAL_SECONDS,
@@ -156,7 +183,7 @@ def create_app():
     return app
 
 
-# ---------------------- APP ENTRY POINT ---------------------- #
+# ---------------------- Entry Point ----------------------
 if __name__ == "__main__":
     app = create_app()
     port = int(os.environ.get("PORT", 8080))
