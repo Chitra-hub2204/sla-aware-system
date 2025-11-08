@@ -1,17 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// ✅ Clean production config for Vercel
-// No proxy needed — frontend directly calls Railway backend using full URL in api.js
+// ✅ Clean production config for Netlify
+// Uses base: "./" for proper relative asset paths
+// Backend URL is handled via environment variable in api.js (VITE_API_BASE_URL)
 
 export default defineConfig({
   plugins: [react()],
+  base: './',
   build: {
-    outDir: 'dist',       // Vercel uses this as output
+    outDir: 'dist',      // Netlify uses this as the publish directory
     sourcemap: false
   },
   server: {
-    port: 5173,           // local dev port
+    port: 5173,
     open: true
   },
   preview: {
