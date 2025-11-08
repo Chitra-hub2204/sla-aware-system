@@ -15,12 +15,14 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
 
-    # ✅ Allow your deployed Vercel frontend and localhost for dev
+    # ✅ Updated CORS configuration
+    # Allows both Netlify + local + old Vercel (optional)
     CORS(app, resources={
         r"/*": {
             "origins": [
-                "https://sla-aware-system-p5ow.vercel.app",  # Vercel domain
-                "http://localhost:5173"                      # Local dev
+                "https://legendary-frangipane-409a9d.netlify.app",  # ✅ New Netlify domain
+                "https://sla-aware-system-p5ow.vercel.app",         # Old Vercel domain
+                "http://localhost:5173"                             # Local dev
             ]
         }
     }, supports_credentials=True)
