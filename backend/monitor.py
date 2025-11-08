@@ -1,6 +1,8 @@
 import random
 from datetime import datetime
 from models import ServiceOrder, MetricRecord, Alert, db
+from flask_mail import Message
+from flask import current_app
 
 # ---- SLA Evaluation Function ----
 def evaluate_sla(order: ServiceOrder, recent_metrics):
@@ -59,8 +61,8 @@ def generate_metric_for_order(order: ServiceOrder, deterministic=None):
     db.session.commit()
 
     # ---- SLA evaluation based on recent 5 metrics ----
-    recent = MetricRecord.query.filter_by(order_id=order.id)\
-        .order_by(MetricRecord.timestamp.desc())\
+    recent = MetricRecord.query.filter_by(order_id=order.id) \
+        .order_by(MetricRecord.timestamp.desc()) \
         .limit(5).all()
 
     status, reason = evaluate_sla(order, recent)
@@ -73,12 +75,52 @@ def generate_metric_for_order(order: ServiceOrder, deterministic=None):
         alert = Alert(order_id=order.id, type="SLA_BREACH", details=reason)
         db.session.add(alert)
         db.session.commit()
+
+        send_email_alert(alert, order)
+
     elif status == "OK" and prev_status == "BREACHED":
         alert = Alert(order_id=order.id, type="RECOVERY", details="Service recovered within SLA")
         db.session.add(alert)
         db.session.commit()
 
+        send_email_alert(alert, order)
+
     return m
+
+
+# ---- Email Notification Helper ----
+def send_email_alert(alert, order):
+    """Send SLA alert email notification"""
+    try:
+        mail = current_app.extensions.get("mail")
+        if not mail:
+            print("⚠️ Mail extension not initialized.")
+            return
+
+        subject = f"SLA Alert: {alert.type} for {order.service_type}"
+        body = f"""
+SLA Notification
+
+Order ID: {alert.order_id}
+User: {order.user_name}
+Service: {order.service_type}
+Type: {alert.type}
+Details: {alert.details}
+Time: {alert.timestamp}
+
+Current Status: {order.status}
+"""
+
+        msg = Message(
+            subject=subject,
+            recipients=[current_app.config["MAIL_USERNAME"]],  # send to yourself
+            body=body
+        )
+
+        mail.send(msg)
+        print(f"✅ Email alert sent successfully for Order {order.id} ({alert.type})")
+    except Exception as e:
+        print(f"⚠️ Failed to send email alert: {e}")
 
 
 # ---- Scheduler Trigger ----
