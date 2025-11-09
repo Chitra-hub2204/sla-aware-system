@@ -1,7 +1,6 @@
 import random
 from datetime import datetime
 from models import ServiceOrder, MetricRecord, Alert, db
-from flask_mail import Message
 from flask import current_app
 
 # ---- SLA Evaluation Function ----
@@ -38,16 +37,16 @@ def generate_metric_for_order(order: ServiceOrder, deterministic=None):
         chance = random.random()
 
         # 🎯 Keep 'Chitra' service always healthy for demo
-        if order.user_name.lower() == "chitra":
+        if order.user_name and order.user_name.lower() == "chitra":
             up = 99.9
             lat = 200
 
         # 70% OK, 30% BREACHED
         elif chance < 0.7:
-            up = random.uniform(order.sla_uptime_pct + 0.2, 100.0)
-            lat = random.uniform(100, order.sla_latency_ms * 0.9)
+            up = random.uniform(max(order.sla_uptime_pct + 0.2, 0.0), 100.0)
+            lat = random.uniform(100, max(order.sla_latency_ms * 0.9, 100))
         else:
-            up = random.uniform(order.sla_uptime_pct - 8, order.sla_uptime_pct - 1)
+            up = random.uniform(max(order.sla_uptime_pct - 8, 0.0), max(order.sla_uptime_pct - 1, 0.0))
             lat = random.uniform(order.sla_latency_ms * 1.3, order.sla_latency_ms * 2.0)
 
     # Create a metric record
@@ -75,14 +74,12 @@ def generate_metric_for_order(order: ServiceOrder, deterministic=None):
         alert = Alert(order_id=order.id, type="SLA_BREACH", details=reason)
         db.session.add(alert)
         db.session.commit()
-
         send_email_alert(alert, order)
 
     elif status == "OK" and prev_status == "BREACHED":
         alert = Alert(order_id=order.id, type="RECOVERY", details="Service recovered within SLA")
         db.session.add(alert)
         db.session.commit()
-
         send_email_alert(alert, order)
 
     return m
@@ -90,16 +87,21 @@ def generate_metric_for_order(order: ServiceOrder, deterministic=None):
 
 # ---- Email Notification Helper ----
 def send_email_alert(alert, order):
-    """Send SLA alert email notification"""
+    """
+    Try to send an email alert using Flask-Mail if available.
+    If Flask-Mail or mail extension is not present, fallback to console logging.
+    """
     try:
-        mail = current_app.extensions.get("mail")
-        if not mail:
-            print("⚠️ Mail extension not initialized.")
-            return
+        # Try to import Message locally; if flask_mail isn't installed, ImportError will be raised
+        try:
+            from flask_mail import Message  # local import to avoid top-level dependency
+            flask_mail_available = True
+        except Exception:
+            flask_mail_available = False
 
+        mail = current_app.extensions.get("mail")
         subject = f"SLA Alert: {alert.type} for {order.service_type}"
-        body = f"""
-SLA Notification
+        body = f"""SLA Notification
 
 Order ID: {alert.order_id}
 User: {order.user_name}
@@ -111,16 +113,23 @@ Time: {alert.timestamp}
 Current Status: {order.status}
 """
 
-        msg = Message(
-            subject=subject,
-            recipients=[current_app.config["MAIL_USERNAME"]],  # send to yourself
-            body=body
-        )
+        # If both flask_mail package and mail extension are available -> send email
+        if flask_mail_available and mail:
+            recipients = [current_app.config.get("MAIL_USERNAME")] if current_app.config.get("MAIL_USERNAME") else []
+            msg = Message(subject=subject, recipients=recipients, body=body)
+            mail.send(msg)
+            print(f"✅ Email alert sent successfully for Order {order.id} ({alert.type})")
+            return
 
-        mail.send(msg)
-        print(f"✅ Email alert sent successfully for Order {order.id} ({alert.type})")
+        # Fallback: log to console (safe for deployments without Flask-Mail)
+        print("⚠️ Flask-Mail not available or mail extension not initialized — falling back to console log.")
+        print(f"[EMAIL-SIM] To: {current_app.config.get('MAIL_USERNAME', '<no-recipient>')}")
+        print(f"[EMAIL-SIM] Subject: {subject}")
+        print(f"[EMAIL-SIM] Body:\n{body}")
+
     except Exception as e:
-        print(f"⚠️ Failed to send email alert: {e}")
+        # Never raise here — email failures should not crash metric generation
+        print(f"⚠️ Failed to send or log email alert: {e}")
 
 
 # ---- Scheduler Trigger ----
@@ -129,4 +138,8 @@ def scheduled_generate(app):
     with app.app_context():
         orders = ServiceOrder.query.all()
         for o in orders:
-            generate_metric_for_order(o)
+            try:
+                generate_metric_for_order(o)
+            except Exception as e:
+                # keep scheduler robust; log and continue
+                print(f"[SCHEDULER-ERROR] failed to generate metric for order {o.id if o else 'unknown'}: {e}")

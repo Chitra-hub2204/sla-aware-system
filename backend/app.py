@@ -6,7 +6,6 @@ from monitor import scheduled_generate, generate_metric_for_order
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from waitress import serve
-from flask_mail import Mail, Message
 from dotenv import load_dotenv
 import os
 
@@ -22,22 +21,12 @@ def create_app():
     # ------------------ Environment Setup ------------------
     load_dotenv()
 
-    # ------------------ Mail Config ------------------
-    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 587))
-    app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True") == "True"
-    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
-    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
-    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
-
-    mail = Mail(app)
-
     # ------------------ CORS Setup ------------------
     CORS(app, resources={
         r"/*": {
             "origins": [
-                "https://legendary-frangipane-409a9d.netlify.app",  # ✅ your Netlify frontend
-                "http://localhost:5173"                             # local dev
+                "https://legendary-frangipane-409a9d.netlify.app",
+                "http://localhost:5173"
             ]
         }
     })
@@ -68,17 +57,8 @@ def create_app():
             db.session.add(o)
             db.session.commit()
 
-            # Send email notification on order creation (optional)
-            try:
-                msg = Message(
-                    subject=f"New SLA Order Created (ID: {o.id})",
-                    recipients=[app.config["MAIL_USERNAME"]],
-                    body=f"A new SLA order has been created by {o.user_name} for {o.service_type}."
-                )
-                mail.send(msg)
-                print(f"✅ Email alert sent successfully for Order {o.id}")
-            except Exception as e:
-                print(f"⚠️ Email sending failed: {e}")
+            # Simulated notification (replaces email)
+            print(f"[NOTIFY] New SLA order created by {o.user_name} for {o.service_type}")
 
             return jsonify({
                 "id": o.id,
@@ -148,19 +128,10 @@ def create_app():
 
         m = generate_metric_for_order(o, deterministic=deterministic)
 
-        # Example: Send alert mail if SLA breach
+        # Log breach events instead of sending emails
         if m.uptime_pct < o.sla_uptime_pct or m.latency_ms > o.sla_latency_ms:
-            try:
-                msg = Message(
-                    subject=f"SLA Alert for Order {o.id}",
-                    recipients=[app.config["MAIL_USERNAME"]],
-                    body=f"⚠️ SLA breach detected for {o.service_type}.\n"
-                         f"Uptime: {m.uptime_pct}% | Latency: {m.latency_ms}ms"
-                )
-                mail.send(msg)
-                print(f"✅ Email alert sent successfully for Order {o.id} (SLA_BREACH)")
-            except Exception as e:
-                print(f"⚠️ Failed to send SLA alert email: {e}")
+            print(f"[ALERT] SLA breach detected for {o.service_type} — "
+                  f"Uptime: {m.uptime_pct}% | Latency: {m.latency_ms}ms")
 
         return jsonify({
             "timestamp": m.timestamp.isoformat(),
@@ -173,7 +144,7 @@ def create_app():
         """Simple health check"""
         return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
 
-    # ---------------------- Background Job ----------------------
+    # ------------------ Background Scheduler ------------------
     scheduler = BackgroundScheduler()
     scheduler.add_job(lambda: scheduled_generate(app), "interval",
                       seconds=SCHEDULER_INTERVAL_SECONDS,
@@ -183,7 +154,6 @@ def create_app():
     return app
 
 
-# ---------------------- Entry Point ----------------------
 if __name__ == "__main__":
     app = create_app()
     port = int(os.environ.get("PORT", 8080))
