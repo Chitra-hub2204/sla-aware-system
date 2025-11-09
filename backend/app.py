@@ -5,37 +5,33 @@ from config import DATABASE_URL, SCHEDULER_INTERVAL_SECONDS
 from monitor import scheduled_generate, generate_metric_for_order
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
-from waitress import serve
-from dotenv import load_dotenv
 import os
+from waitress import serve
 
 
 def create_app():
     app = Flask(__name__)
-
-    # ------------------ Database Config ------------------
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
 
-    # ------------------ Environment Setup ------------------
-    load_dotenv()
-
-    # ------------------ CORS Setup ------------------
+    # ✅ Updated CORS configuration
+    # Allows both Netlify + local + old Vercel (optional)
     CORS(app, resources={
         r"/*": {
             "origins": [
-                "https://legendary-frangipane-409a9d.netlify.app",
-                "http://localhost:5173"
+                "https://legendary-frangipane-409a9d.netlify.app",  # ✅ New Netlify domain
+                "https://sla-aware-system-p5ow.vercel.app",         # Old Vercel domain
+                "http://localhost:5173"                             # Local dev
             ]
         }
-    })
+    }, supports_credentials=True)
 
-    # ------------------ Database Init ------------------
+    # Initialize database
     with app.app_context():
         db.create_all()
 
-    # ------------------ Routes ------------------
+    # ---------------------- ROUTES ---------------------- #
 
     @app.route("/orders", methods=["POST"])
     def create_order():
@@ -56,9 +52,6 @@ def create_app():
             )
             db.session.add(o)
             db.session.commit()
-
-            # Simulated notification (replaces email)
-            print(f"[NOTIFY] New SLA order created by {o.user_name} for {o.service_type}")
 
             return jsonify({
                 "id": o.id,
@@ -127,12 +120,6 @@ def create_app():
             }
 
         m = generate_metric_for_order(o, deterministic=deterministic)
-
-        # Log breach events instead of sending emails
-        if m.uptime_pct < o.sla_uptime_pct or m.latency_ms > o.sla_latency_ms:
-            print(f"[ALERT] SLA breach detected for {o.service_type} — "
-                  f"Uptime: {m.uptime_pct}% | Latency: {m.latency_ms}ms")
-
         return jsonify({
             "timestamp": m.timestamp.isoformat(),
             "uptime_pct": m.uptime_pct,
@@ -144,7 +131,7 @@ def create_app():
         """Simple health check"""
         return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
 
-    # ------------------ Background Scheduler ------------------
+    # ---------------------- BACKGROUND JOB ---------------------- #
     scheduler = BackgroundScheduler()
     scheduler.add_job(lambda: scheduled_generate(app), "interval",
                       seconds=SCHEDULER_INTERVAL_SECONDS,
@@ -154,6 +141,7 @@ def create_app():
     return app
 
 
+# ---------------------- APP ENTRY POINT ---------------------- #
 if __name__ == "__main__":
     app = create_app()
     port = int(os.environ.get("PORT", 8080))
