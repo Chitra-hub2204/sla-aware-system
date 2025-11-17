@@ -5,3 +5,5 @@ ncclient
 requests
 lxml
 flask-mail
+flask_sqlalchemy
+sqlalchemy
