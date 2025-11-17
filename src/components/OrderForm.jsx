@@ -4,8 +4,8 @@ import { createOrder } from "../api";
 export default function OrderForm({ onCreated }) {
   const [userName, setUserName] = useState("");
   const [serviceType, setServiceType] = useState("compute");
-  const [slaUptime, setSlaUptime] = useState(99.0);
-  const [slaLatency, setSlaLatency] = useState(500);
+  const [slaUptime] = useState(99.0); // Locked to 99
+  const [slaLatency] = useState(500); // Locked to 500
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -43,12 +43,12 @@ export default function OrderForm({ onCreated }) {
 
       <label>
         SLA Uptime (%)
-        <input type="number" value={slaUptime} onChange={(e) => setSlaUptime(e.target.value)} />
+        <input type="number" value={slaUptime} readOnly disabled />
       </label>
 
       <label>
         SLA Latency (ms)
-        <input type="number" value={slaLatency} onChange={(e) => setSlaLatency(e.target.value)} />
+        <input type="number" value={slaLatency} readOnly disabled />
       </label>
 
       <button type="submit">Create</button>

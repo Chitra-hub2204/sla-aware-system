@@ -1,0 +1,14 @@
+<config>
+  <services xmlns="http://example.com/onap/sla">
+    <service>
+      <service-id>{{service_id}}</service-id>
+      <sla>
+        <latency>{{latency}}</latency>
+        <throughput>{{throughput}}</throughput>
+        <jitter>{{jitter}}</jitter>
+      </sla>
+    </service>
+  </services>
+</config>
+
+

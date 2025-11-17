@@ -1,0 +1,44 @@
+groups:
+  - name: sla_alerts
+    interval: 30s
+    rules:
+      - alert: SLALatencyBreach
+        expr: sla_latency > 500
+        for: 30s
+        labels:
+          severity: critical
+          service: sla_backend
+        annotations:
+          summary: "SLA Latency Breach Detected"
+          description: "Service {{ $labels.service_id }} has latency {{ $value }}ms exceeding threshold of 500ms for 30 seconds"
+
+      - alert: SLALatencyRestored
+        expr: sla_latency <= 500
+        for: 30s
+        labels:
+          severity: info
+          service: sla_backend
+        annotations:
+          summary: "SLA Latency Restored"
+          description: "Service {{ $labels.service_id }} latency {{ $value }}ms is now within threshold"
+
+      - alert: SLAUptimeBreach
+        expr: sla_uptime < 99
+        for: 2m
+        labels:
+          severity: critical
+          service: sla_backend
+        annotations:
+          summary: "SLA Uptime Breach Detected"
+          description: "Service {{ $labels.service_id }} has uptime {{ $value }}% below threshold of 99% for 2 minutes"
+
+      - alert: SLAUptimeRestored
+        expr: sla_uptime >= 99
+        for: 2m
+        labels:
+          severity: info
+          service: sla_backend
+        annotations:
+          summary: "SLA Uptime Restored"
+          description: "Service {{ $labels.service_id }} uptime {{ $value }}% is now above threshold"
+

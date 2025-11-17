@@ -1,0 +1,22 @@
+global:
+  resolve_timeout: 1m
+  # SMTP settings for Gmail (replace the password placeholder locally)
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'ugcet22055@gmail.com'
+  smtp_auth_username: 'ugcet22055@gmail.com'
+  smtp_auth_password: 'YOUR_APP_PASSWORD_PLACEHOLDER'
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: 'email-alerts'
+
+receivers:
+  - name: 'email-alerts'
+    email_configs:
+      - to: 'ugcet22055@gmail.com'
+        send_resolved: true
+

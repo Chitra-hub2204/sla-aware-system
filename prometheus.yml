@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+rule_files:
+  - "/etc/prometheus/prometheus_alerts.yml"
+
+scrape_configs:
+  - job_name: "sla_backend"
+    static_configs:
+      - targets:
+          # For Railway: Replace with your Railway backend URL (e.g., https://your-app.up.railway.app)
+          # For local: Use backend:8080
+          - "backend:8080"
+
+
