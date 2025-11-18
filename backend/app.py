@@ -7,7 +7,7 @@ from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from prometheus_client import (
     CollectorRegistry,
-    Counter,
+    Counter,                    
     Gauge,
     Histogram,
     CONTENT_TYPE_LATEST,
@@ -151,7 +151,6 @@ def create_app():
         if latency > 700 or uptime < 95:
             return True
     return random.random() < 0.40
-
 
 
 
