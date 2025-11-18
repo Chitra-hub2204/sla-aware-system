@@ -1,14 +1,12 @@
 FROM python:3.10-slim
-
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-
-ENV PORT=8080
+COPY backend/ ./backend/
 
 EXPOSE 8080
 
-CMD ["python", "app.py"]
+# Run the package as a module so "backend" package imports resolve
+CMD ["python", "-m", "backend.app"]

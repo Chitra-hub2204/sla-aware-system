@@ -7,3 +7,6 @@ lxml
 flask-mail
 flask_sqlalchemy
 sqlalchemy
+psutil
+gunicorn
+flask-sqlalchemy
