@@ -147,10 +147,11 @@ def create_app():
     #  ⭐ MIXED-MODE BREACH SYSTEM (60% OK / 40% BREACHED)
     # ============================================================================
     def check_sla_breach(latency, uptime):
-        # Hard failures always breach
+        # Hard failures (always breach)
         if latency > 700 or uptime < 95:
             return True
-        # Otherwise 40% chance breach
+        # 40% chance of breach
+        import random
         return random.random() < 0.40
 
 
