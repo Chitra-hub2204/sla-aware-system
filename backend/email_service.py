@@ -1,38 +1,44 @@
-import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
 
 
 class EmailService:
-    """Email service for sending SLA breach and restoration alerts via Gmail SMTP."""
-
     def __init__(self):
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
 
-        # 🔥 Load from environment instead of hardcoding
-        self.sender_email = os.getenv("EMAIL_SENDER")
-        self.sender_password = os.getenv("EMAIL_PASSWORD")
-        self.recipient_email = os.getenv("EMAIL_RECIPIENT")
+        self.sender_email = os.getenv("SMTP_EMAIL")
+        self.sender_password = os.getenv("SMTP_PASSWORD")
+        self.recipient_email = os.getenv("SMTP_RECIPIENT")
 
-    def send_breach_alert(self, service_id: str, latency: float, uptime: float):
-        subject = f"SLA Breach Alert: {service_id}"
-        body = f"""Service {service_id} has breached SLA.
+        if not self.sender_email or not self.sender_password:
+            print("⚠️ EMAIL ENV VARS NOT SET on Railway")
+
+    def send_breach_alert(self, service_id, latency, uptime):
+        subject = f"SLA BREACH ALERT: {service_id}"
+        body = f"""
+SLA breach detected!
+
+Service ID: {service_id}
 Latency: {latency} ms
-Uptime: {uptime} %
+Uptime: {uptime}%
 """
         self._send_email(subject, body)
 
-    def send_restoration_alert(self, service_id: str, latency: float, uptime: float):
-        subject = f"SLA Restored: {service_id}"
-        body = f"""Service {service_id} is healthy again.
+    def send_restoration_alert(self, service_id, latency, uptime):
+        subject = f"SLA RESTORED: {service_id}"
+        body = f"""
+SLA restored!
+
+Service ID: {service_id}
 Latency: {latency} ms
-Uptime: {uptime} %
+Uptime: {uptime}%
 """
         self._send_email(subject, body)
 
-    def _send_email(self, subject: str, body: str):
+    def _send_email(self, subject, body):
         try:
             msg = MIMEMultipart()
             msg["From"] = self.sender_email
