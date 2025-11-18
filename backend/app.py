@@ -148,18 +148,17 @@ def create_app():
     # ============================================================================
     def check_sla_breach(latency: float, uptime: float) -> bool:
         """
-        Mixed-mode SLA demo:
-        - 60% OK
-        - 40% BREACH
-        - Hard failure rules override probability:
-            latency > 700 OR uptime < 95 → ALWAYS breach
+        Mixed-mode SLA evaluation for demo:
+        - Hard breach when latency > 700 OR uptime < 95
+        - Otherwise 40% chance breach, 60% chance OK
         """
+        import random
 
-        # Hard failures
+        # Hard breach — ALWAYS breach
         if latency > 700 or uptime < 95:
             return True
 
-        # Probabilistic breach
+        # Probabilistic breach (40%)
         return random.random() < 0.40
 
 
@@ -248,8 +247,8 @@ def create_app():
                 print(f"[NETCONF] Activation failed (ignored): {e}")
 
             # Push metrics
-            latency_value = float(order.sla_latency_ms)
-            uptime_value = float(order.sla_uptime_pct)
+            latency_value = order.sla_latency_ms
+            uptime_value = order.sla_uptime_pct
 
             sla_latency.labels(service_id=service_id).set(latency_value)
             sla_latency_histogram.labels(service_id=service_id).observe(latency_value)
@@ -257,6 +256,12 @@ def create_app():
             service_activation_status.labels(service_id=service_id).set(1)
 
             # Run SLA evaluation + email alerts
+            import random
+            # Apply probabilistic simulation
+            if random.random() < 0.40:
+                latency_value = random.uniform(650, 1000)
+                uptime_value = random.uniform(90, 97)
+
             update_order_sla_status(order.id, latency_value, uptime_value)
 
             return jsonify({
