@@ -7,7 +7,7 @@ import os
 class EmailService:
     def __init__(self):
         self.smtp_server = "smtp.gmail.com"
-        self.smtp_port = 8080
+        self.smtp_port = 587
 
         self.sender_email = os.getenv("SMTP_EMAIL")
         self.sender_password = os.getenv("SMTP_PASSWORD")
