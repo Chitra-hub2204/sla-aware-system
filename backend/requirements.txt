@@ -1,9 +1,0 @@
-Flask==3.0.0
-flask-cors
-prometheus-client
-ncclient
-requests
-lxml
-flask-mail
-flask_sqlalchemy
-sqlalchemy
