@@ -14,10 +14,10 @@ from prometheus_client import (
     generate_latest,
 )
 
-# FIXED IMPORTS (Option A)
-from backend.models import db, ServiceOrder, MetricRecord, Alert
-from backend.orchestrator import ServiceOrchestrator
-from backend.email_service import EmailService
+# FIXED IMPORTS (package-relative imports)
+from .models import db, ServiceOrder, MetricRecord, Alert
+from .orchestrator import ServiceOrchestrator
+from .email_service import EmailService
 
 
 # ============================================================================
@@ -146,19 +146,11 @@ def create_app():
     # ============================================================================
     #  ⭐ MIXED-MODE BREACH SYSTEM (60% OK / 40% BREACHED)
     # ============================================================================
-    def check_sla_breach(latency: float, uptime: float) -> bool:
-        """
-        Mixed-mode SLA evaluation for demo:
-        - Hard breach when latency > 700 OR uptime < 95
-        - Otherwise 40% chance breach, 60% chance OK
-        """
-        import random
-
-        # Hard breach — ALWAYS breach
+    def check_sla_breach(latency, uptime):
+        # Hard failures always breach
         if latency > 700 or uptime < 95:
             return True
-
-        # Probabilistic breach (40%)
+        # Otherwise 40% chance breach
         return random.random() < 0.40
 
 
