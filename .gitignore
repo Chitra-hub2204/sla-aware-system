@@ -56,3 +56,7 @@ __pycache__/
 # Other temporary files
 *.bak
 *.tmp
+
+# Explicit backend ignores
+backend/requirements.txt
+backend/sla_demo.db
