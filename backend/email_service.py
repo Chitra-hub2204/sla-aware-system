@@ -9,12 +9,15 @@ class EmailService:
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
 
+        # Required environment variables
         self.sender_email = os.getenv("SMTP_EMAIL")
         self.sender_password = os.getenv("SMTP_PASSWORD")
         self.recipient_email = os.getenv("SMTP_RECIPIENT")
 
-        if not self.sender_email or not self.sender_password:
-            print("⚠️ EMAIL ENV VARS NOT SET on Railway")
+        if not self.sender_email or not self.sender_password or not self.recipient_email:
+            print("⚠️ EMAIL ENV VARS MISSING on Railway: ensure SMTP_EMAIL, SMTP_PASSWORD, SMTP_RECIPIENT are set")
+        else:
+            print(f"ℹ️ Email configured: server={self.smtp_server}:{self.smtp_port}, sender={self.sender_email}, recipient={self.recipient_email}")
 
     def send_breach_alert(self, service_id, latency, uptime):
         subject = f"SLA BREACH ALERT: {service_id}"
@@ -51,7 +54,7 @@ Uptime: {uptime}%
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
 
-            print(f"✅ Email sent: {subject}")
+            print(f"✅ Email sent to {self.recipient_email}: {subject}")
 
         except Exception as e:
-            print(f"⚠️ Failed to send email: {e}")
+            print(f"⚠️ Failed to send email to {self.recipient_email}: {e}")
