@@ -5,35 +5,41 @@ import os
 
 
 class EmailService:
-    """Email service for sending SLA breach and restoration alerts via Gmail SMTP."""
+    """Email service for sending SLA breach and restoration alerts."""
 
-    def __init__(self):
+    def _init_(self):
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
-        self.sender_email = "ugcet22055@gmail.com"
-        self.sender_password = "rxbfnuvywknvxxoc"
-        self.recipient_email = "ugcet22055@gmail.com"
+
+        # Read from environment variables (Railway → Variables)
+        self.sender_email = os.getenv("EMAIL_USER")
+        self.sender_password = os.getenv("EMAIL_PASS")
+        self.recipient_email = os.getenv("EMAIL_TO")
+
+        if not all([self.sender_email, self.sender_password, self.recipient_email]):
+            print("⚠ Email service NOT configured: missing environment variables")
 
     def send_breach_alert(self, service_id: str, latency: float, uptime: float):
-        """Send email alert when SLA is breached."""
         subject = f"SLA Breach Alert: {service_id}"
-        body = f"""Service {service_id} has breached SLA.
+        body = f"""SLA BREACH DETECTED!
+
+Service: {service_id}
 Latency: {latency} ms
 Uptime: {uptime} %
 """
         self._send_email(subject, body)
 
     def send_restoration_alert(self, service_id: str, latency: float, uptime: float):
-        """Send email alert when SLA is restored."""
         subject = f"SLA Restored: {service_id}"
-        body = f"""Service {service_id} is healthy again.
+        body = f"""SLA RESTORED ✔
+
+Service: {service_id}
 Latency: {latency} ms
 Uptime: {uptime} %
 """
         self._send_email(subject, body)
 
     def _send_email(self, subject: str, body: str):
-        """Internal method to send email via SMTP."""
         try:
             msg = MIMEMultipart()
             msg["From"] = self.sender_email
@@ -45,7 +51,8 @@ Uptime: {uptime} %
                 server.starttls()
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
-            print(f"✅ Email sent: {subject}")
-        except Exception as e:
-            print(f"⚠️ Failed to send email: {e}")
 
+            print(f"✅ Email Sent: {subject}")
+
+        except Exception as e:
+            print(f"⚠ Email sending failed: {e}")
