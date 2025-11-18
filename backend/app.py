@@ -14,10 +14,10 @@ from prometheus_client import (
     generate_latest,
 )
 
-# FIXED IMPORTS (package-relative imports)
-from .models import db, ServiceOrder, MetricRecord, Alert
-from .orchestrator import ServiceOrchestrator
-from .email_service import EmailService
+# FIXED IMPORTS (absolute package imports)
+from backend.models import db, ServiceOrder, MetricRecord, Alert
+from backend.orchestrator import ServiceOrchestrator
+from backend.email_service import EmailService
 
 
 # ============================================================================

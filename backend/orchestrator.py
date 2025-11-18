@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from netconf_client import NetconfClient
+from backend.netconf_client import NetconfClient
 
 
 class ServiceOrchestrator:
