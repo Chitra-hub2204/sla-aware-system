@@ -1,29 +1,24 @@
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
 
 
 class EmailService:
-    """Email service for sending SLA breach and restoration alerts."""
+    """Email service for sending SLA breach and restoration alerts via Gmail SMTP."""
 
-    def _init_(self):
+    def __init__(self):
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
 
-        # Read from environment variables (Railway → Variables)
-        self.sender_email = os.getenv("EMAIL_USER")
-        self.sender_password = os.getenv("EMAIL_PASS")
-        self.recipient_email = os.getenv("EMAIL_TO")
-
-        if not all([self.sender_email, self.sender_password, self.recipient_email]):
-            print("⚠ Email service NOT configured: missing environment variables")
+        # 🔥 Load from environment instead of hardcoding
+        self.sender_email = os.getenv("EMAIL_SENDER")
+        self.sender_password = os.getenv("EMAIL_PASSWORD")
+        self.recipient_email = os.getenv("EMAIL_RECIPIENT")
 
     def send_breach_alert(self, service_id: str, latency: float, uptime: float):
         subject = f"SLA Breach Alert: {service_id}"
-        body = f"""SLA BREACH DETECTED!
-
-Service: {service_id}
+        body = f"""Service {service_id} has breached SLA.
 Latency: {latency} ms
 Uptime: {uptime} %
 """
@@ -31,9 +26,7 @@ Uptime: {uptime} %
 
     def send_restoration_alert(self, service_id: str, latency: float, uptime: float):
         subject = f"SLA Restored: {service_id}"
-        body = f"""SLA RESTORED ✔
-
-Service: {service_id}
+        body = f"""Service {service_id} is healthy again.
 Latency: {latency} ms
 Uptime: {uptime} %
 """
@@ -52,7 +45,7 @@ Uptime: {uptime} %
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
 
-            print(f"✅ Email Sent: {subject}")
+            print(f"✅ Email sent: {subject}")
 
         except Exception as e:
-            print(f"⚠ Email sending failed: {e}")
+            print(f"⚠️ Failed to send email: {e}")
