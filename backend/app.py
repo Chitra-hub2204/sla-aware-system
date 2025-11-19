@@ -360,7 +360,7 @@ def create_app():
 # ============================================================================
 # ENTRYPOINT
 # ============================================================================
-if _name_ == "_main_":
+if __name__ == "__main__":
     application = create_app()
     port = int(os.getenv("PORT", 8080))
     application.run(host="0.0.0.0", port=port)
