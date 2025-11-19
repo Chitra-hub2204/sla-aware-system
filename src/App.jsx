@@ -5,6 +5,9 @@ import OrderDetail from "./components/OrderDetail";
 import { listOrders } from "./api";
 import "./styles.css";
 
+// ⭐ DEBUG LINE — shows which backend your deployed frontend is calling
+console.log("🌍 FRONTEND LOADED — Backend URL =", import.meta.env.VITE_API_BASE_URL);
+
 export default function App() {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -35,7 +38,11 @@ export default function App() {
 
         <div className="panel">
           <h2>Orders</h2>
-          <OrdersList orders={orders} onSelect={setSelected} onRefresh={loadOrders} />
+          <OrdersList
+            orders={orders}
+            onSelect={setSelected}
+            onRefresh={loadOrders}
+          />
         </div>
 
         <div className="panel full">
