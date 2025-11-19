@@ -83,11 +83,11 @@ def _increment_error_counter():
 # APPLICATION FACTORY
 # ============================================================================
 def create_app():
-    app = Flask(_name_)
+    app = Flask(__name__)
     CORS(app, resources={r"/": {"origins": ""}})
 
     # DB Configuration
-    database_path = os.path.join(os.path.dirname(_file_), "sla_demo.db")
+    database_path = os.path.join(os.path.dirname(__file__), "sla_demo.db")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{database_path}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
