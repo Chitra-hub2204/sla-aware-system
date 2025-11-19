@@ -84,7 +84,7 @@ def _increment_error_counter():
 # ============================================================================
 def create_app():
     app = Flask(__name__)
-    CORS(app, resources={r"/": {"origins": ""}})
+    CORS(app, resources={r"/*": {"origins": "*"}},supports_credentials=True)
 
     # DB Configuration
     database_path = os.path.join(os.path.dirname(__file__), "sla_demo.db")
